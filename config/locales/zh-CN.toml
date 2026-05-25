@@ -1,0 +1,38 @@
+["response.success"]
+other = "成功"
+
+["response.bad_request"]
+other = "请求参数错误"
+
+["response.missing_param"]
+other = "缺少必要参数"
+
+["response.invalid_param"]
+other = "参数格式错误"
+
+["response.unauthorized"]
+other = "未认证"
+
+["response.token_expired"]
+other = "Token 已过期"
+
+["response.token_invalid"]
+other = "Token 无效"
+
+["response.forbidden"]
+other = "无权限"
+
+["response.not_found"]
+other = "资源不存在"
+
+["response.conflict"]
+other = "资源冲突"
+
+["response.rate_limited"]
+other = "请求频率限制"
+
+["response.internal_server_error"]
+other = "服务器内部错误"
+
+["response.service_unavail"]
+other = "服务不可用"

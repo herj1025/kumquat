@@ -1,0 +1,38 @@
+["response.success"]
+other = "Success"
+
+["response.bad_request"]
+other = "Bad request"
+
+["response.missing_param"]
+other = "Missing required parameter"
+
+["response.invalid_param"]
+other = "Invalid parameter"
+
+["response.unauthorized"]
+other = "Unauthorized"
+
+["response.token_expired"]
+other = "Token expired"
+
+["response.token_invalid"]
+other = "Invalid token"
+
+["response.forbidden"]
+other = "Forbidden"
+
+["response.not_found"]
+other = "Not found"
+
+["response.conflict"]
+other = "Resource conflict"
+
+["response.rate_limited"]
+other = "Rate limited"
+
+["response.internal_server_error"]
+other = "Internal server error"
+
+["response.service_unavail"]
+other = "Service unavailable"
