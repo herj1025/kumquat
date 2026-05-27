@@ -53,16 +53,16 @@ func Authorization(secret string) gin.HandlerFunc {
 	}
 }
 
-// GenerateAccessToken creates a short-lived JWT access token.
-func GenerateAccessToken(claims jwt.MapClaims, secret string, expire time.Duration) (string, error) {
+// generateAccessToken creates a short-lived JWT access token.
+func generateAccessToken(claims jwt.MapClaims, secret string, expire time.Duration) (string, error) {
 	claims["exp"] = time.Now().Add(expire).Unix()
 	claims["iat"] = time.Now().Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
 
-// GenerateRefreshToken creates a long-lived JWT refresh token.
-func GenerateRefreshToken(claims jwt.MapClaims, secret string, expire time.Duration) (string, error) {
+// generateRefreshToken creates a long-lived JWT refresh token.
+func generateRefreshToken(claims jwt.MapClaims, secret string, expire time.Duration) (string, error) {
 	claims["exp"] = time.Now().Add(expire).Unix()
 	claims["iat"] = time.Now().Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -75,11 +75,11 @@ func GenerateTokenPair(
 	accessSecret, refreshSecret string,
 	accessExpire, refreshExpire time.Duration,
 ) (*TokenPair, error) {
-	accessToken, err := GenerateAccessToken(claims, accessSecret, accessExpire)
+	accessToken, err := generateAccessToken(claims, accessSecret, accessExpire)
 	if err != nil {
 		return nil, fmt.Errorf("generate access token: %w", err)
 	}
-	refreshToken, err := GenerateRefreshToken(claims, refreshSecret, refreshExpire)
+	refreshToken, err := generateRefreshToken(claims, refreshSecret, refreshExpire)
 	if err != nil {
 		return nil, fmt.Errorf("generate refresh token: %w", err)
 	}

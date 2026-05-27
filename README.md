@@ -48,7 +48,8 @@ func main() {
     // 添加生成命令
     app.AddGenerateCommand()
     
-    app.RegisterRoutes(func(r *gin.Engine) {
+    app.RegisterRoutes(func(srv *kumquat.Application) {
+        r := srv.Engine()
         r.GET("/ping", func(c *gin.Context) {
             c.JSON(200, gin.H{"message": "pong"})
         })
@@ -65,6 +66,7 @@ package main
 
 import (
     "github.com/gin-gonic/gin"
+    "github.com/herj1025/kumquat"
     "github.com/herj1025/kumquat/pkg/ratelimit"
     "golang.org/x/time/rate"
 )
@@ -72,9 +74,15 @@ import (
 func main() {
     app := kumquat.NewApp()
     
-    app.RegisterRoutes(func(r *gin.Engine) {
+    app.RegisterRoutes(func(srv *kumquat.Application) {
+        r := srv.Engine()
         // 按IP限流：每秒最多10个请求，突发容量20
-        ipLimiter := ratelimit.ByIP(rate.Limit(10), 20)
+        ipLimiter := ratelimit.Middleware(
+            ratelimit.NewMemoryLimiter(rate.Limit(10), 20),
+            ratelimit.WithKeyFunc(func(c *gin.Context) string {
+                return c.ClientIP()
+            }),
+        )
         r.GET("/api/limited", ipLimiter, func(c *gin.Context) {
             c.JSON(200, gin.H{"message": "Limited endpoint"})
         })
@@ -125,7 +133,8 @@ func main() {
         "enable JWT authentication for all routes",
     )
 
-    app.RegisterRoutes(func(r *gin.Engine) {
+    app.RegisterRoutes(func(srv *kumquat.Application) {
+        r := srv.Engine()
         if authEnabled {
             r.Use(middleware.Authorization("secret-key"))
         }

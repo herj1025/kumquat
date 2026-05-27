@@ -11,56 +11,16 @@ import (
 	"github.com/herj1025/kumquat/pkg/logger"
 	"github.com/herj1025/kumquat/pkg/server"
 
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 
 	"github.com/herj1025/kumquat/pkg/generator"
 )
 
-// 公开类型别名，方便外部项目引用配置结构体
-type (
-	Config = config.Config
-	// ServerConfig   = config.ServerConfig
-	// DatabaseConfig = config.DatabaseConfig
-	// LogConfig      = config.LogConfig
-	// RedisConfig    = config.RedisConfig
-	// JWTConfig      = config.JWTConfig
-)
-
-// ---------------------------------------------------------------------------
-// 配置加载
-// ---------------------------------------------------------------------------
-
-// LoadConfig 加载默认路径下的配置文件（./config/config.yaml）
-func LoadConfig() (*Config, error) {
-	return config.Load()
-}
-
-// DefaultConfig 返回框架默认配置
-func DefaultConfig() *Config {
-	return config.Default()
-}
-
-// LoadConfigFromDir 从指定目录加载配置文件（目录下需包含 config.yaml）
-// func LoadConfigFromDir(dir string) (*Config, error) {
-// 	return config.LoadFromDir(dir)
-// }
-
-// LoadConfigFromFile 从指定文件路径加载配置文件
-func LoadConfigFromFile(path string) (*Config, error) {
-	return config.LoadFromFile(path)
-}
-
-// LoadConfigInto 从指定文件加载配置到自定义结构体，支持泛型。
-// 自动应用框架默认值 + 环境变量覆盖，一行代码完成加载。
-//
-//	cfg, err := kumquat.LoadConfigInto[DemoConfig]("config.yaml")
-func LoadConfigInto[T any](path string) (*T, error) {
-	return config.LoadInto[T](path)
-}
+// Application 是 server.Application 的类型别名，方便外部项目引用。
+// type Application = server.Application
 
 // loadConfigWithPath 尝试从路径加载配置，支持文件路径或目录路径
-func loadConfigWithPath(path string) (*Config, error) {
+func loadConfigWithPath(path string) (*config.Config, error) {
 	if path == "" {
 		return config.Load()
 	}
@@ -80,7 +40,7 @@ func loadConfigWithPath(path string) (*Config, error) {
 type App struct {
 	root      *cobra.Command
 	serverCmd *cobra.Command
-	routes    []func(engine *gin.Engine)
+	routes    []func(*server.Application)
 }
 
 // AppOption 定义创建 App 时的可选配置
@@ -170,8 +130,9 @@ func NewApp(opts ...AppOption) *App {
 	return a
 }
 
-// RegisterRoutes 注册业务路由。路由会在 server 子命令启动时加载。
-func (a *App) RegisterRoutes(fn func(engine *gin.Engine)) {
+// RegisterRoutes 注册业务路由。回调函数会收到已初始化的 *server.Application，
+// 通过 srv.Engine() 注册路由，通过 srv.Container() 获取基础设施依赖。
+func (a *App) RegisterRoutes(fn func(*server.Application)) {
 	a.routes = append(a.routes, fn)
 }
 
@@ -206,7 +167,7 @@ func (a *App) runServer(cmd *cobra.Command, args []string) error {
 		if configPath == "" {
 			// 未指定配置文件时，不阻塞，使用框架默认值 + 环境变量
 			fmt.Fprintf(os.Stderr, "Warning: no config file found, using defaults: %v\n", err)
-			cfg = DefaultConfig()
+			cfg = config.Default()
 		} else {
 			return fmt.Errorf("failed to load config from %s: %w", configPath, err)
 		}
@@ -238,10 +199,13 @@ func (a *App) runServer(cmd *cobra.Command, args []string) error {
 	}
 
 	// 6. 创建服务器并注册路由
-	opts := buildServerOptions(a.routes)
-	srv, err := server.New(cfg, opts...)
+	srv, err := server.New(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
+	}
+
+	for _, fn := range a.routes {
+		fn(srv)
 	}
 
 	// 7. 启动服务器（阻塞）
@@ -303,14 +267,4 @@ func (a *App) AddGenerateCommand() {
 	})
 
 	a.root.AddCommand(generateCmd)
-}
-
-// buildServerOptions 将路由函数列表转为 server.ServerOption
-func buildServerOptions(routes []func(engine *gin.Engine)) []server.ServerOption {
-	opts := make([]server.ServerOption, len(routes))
-	for i, fn := range routes {
-		fn := fn
-		opts[i] = server.WithRoutes(fn)
-	}
-	return opts
 }

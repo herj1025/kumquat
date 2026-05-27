@@ -149,7 +149,7 @@ func TestMemoryLimiter_Wait(t *testing.T) {
 }
 
 func TestMemoryLimiter_WaitContextCancel(t *testing.T) {
-	l := NewMemoryLimiter(0.001, 1) // ~1 request per 1000s
+	l := NewMemoryLimiter(0.001, 1)      // ~1 request per 1000s
 	l.Allow(context.Background(), "key") // consume the only token
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
@@ -412,8 +412,10 @@ func TestMiddleware_DenyHandler(t *testing.T) {
 
 // ---------- Helpers ----------
 
-func TestByIP(t *testing.T) {
-	mw := ByIP(10, 5)
+func TestMiddleware_WithClientIPKey(t *testing.T) {
+	mw := Middleware(NewMemoryLimiter(10, 5), WithKeyFunc(func(c *gin.Context) string {
+		return c.ClientIP()
+	}))
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -429,10 +431,12 @@ func TestByIP(t *testing.T) {
 	}
 }
 
-func TestByPath(t *testing.T) {
-	// 创建一个 Gin 路由来测试 ByPath
+func TestMiddleware_WithPathKey(t *testing.T) {
+	// 创建一个 Gin 路由来测试按路径限流
 	router := gin.New()
-	router.Use(ByPath(10, 3))
+	router.Use(Middleware(NewMemoryLimiter(10, 3), WithKeyFunc(func(c *gin.Context) string {
+		return c.FullPath()
+	})))
 	router.GET("/test", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})
@@ -446,10 +450,10 @@ func TestByPath(t *testing.T) {
 	}
 }
 
-func TestByKey(t *testing.T) {
-	mw := ByKey(func(c *gin.Context) string {
+func TestMiddleware_WithCustomKey(t *testing.T) {
+	mw := Middleware(NewMemoryLimiter(10, 2), WithKeyFunc(func(c *gin.Context) string {
 		return c.GetHeader("X-User-ID")
-	}, 10, 2)
+	}))
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -462,8 +466,8 @@ func TestByKey(t *testing.T) {
 	}
 }
 
-func TestByKey_WithLimiterInterface(t *testing.T) {
-	// 验证返回的 HandlerFunc 可以和 Limiter 接口整合
+func TestMiddleware_WithLimiterInterface(t *testing.T) {
+	// 验证单一入口 Middleware 可以直接和 Limiter 接口整合
 	l := NewMemoryLimiter(10, 5)
 	h := Middleware(l, WithKeyFunc(func(c *gin.Context) string {
 		return c.ClientIP()

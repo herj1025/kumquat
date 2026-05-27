@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/time/rate"
 )
 
 // AllowResult 限流检查结果。
@@ -30,9 +29,6 @@ type Limiter interface {
 var (
 	// ErrEmptyKey 表示限流 key 为空。
 	ErrEmptyKey = errors.New("rate limit key is empty")
-
-	// ErrInternal 表示限流器内部错误（如后端不可达）。
-	ErrInternal = errors.New("rate limit internal error")
 )
 
 // limiterConfig 中间件配置。
@@ -137,26 +133,4 @@ func Middleware(limiter Limiter, opts ...LimiterOption) gin.HandlerFunc {
 
 		c.Next()
 	}
-}
-
-// ByIP 按客户端 IP 限流的快捷中间件。
-func ByIP(r rate.Limit, burst int) gin.HandlerFunc {
-	l := NewMemoryLimiter(r, burst)
-	return Middleware(l, WithKeyFunc(func(c *gin.Context) string {
-		return c.ClientIP()
-	}))
-}
-
-// ByPath 按请求路径限流的快捷中间件。
-func ByPath(r rate.Limit, burst int) gin.HandlerFunc {
-	l := NewMemoryLimiter(r, burst)
-	return Middleware(l, WithKeyFunc(func(c *gin.Context) string {
-		return c.FullPath()
-	}))
-}
-
-// ByKey 使用自定义 key 函数限流的快捷中间件。
-func ByKey(keyFunc func(*gin.Context) string, r rate.Limit, burst int) gin.HandlerFunc {
-	l := NewMemoryLimiter(r, burst)
-	return Middleware(l, WithKeyFunc(keyFunc))
 }
