@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/herj1025/kumquat/pkg/lock"
 	"github.com/herj1025/kumquat/pkg/logger"
 
 	"github.com/google/uuid"
@@ -72,6 +73,8 @@ func (c *RedisClient) NewMutex(name string, options ...Option) Mutex {
 }
 
 // RedisMutex 基于 Redis 的互斥锁实现
+var _ lock.Locker = (*RedisMutex)(nil)
+
 type RedisMutex struct {
 	name   string
 	client *RedisClient

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/herj1025/kumquat/pkg/distlock"
+	"github.com/herj1025/kumquat/pkg/lock/distlock"
 	"github.com/herj1025/kumquat/pkg/logger"
 
 	"github.com/redis/go-redis/v9"

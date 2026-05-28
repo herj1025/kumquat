@@ -46,6 +46,9 @@ func defaultConfig() *Config {
 			AccessExpire:  30,
 			RefreshExpire: 720,
 		},
+		SegmentLock: SegmentLockConfig{
+			SegmentCount: 64,
+		},
 	}
 }
 
@@ -56,28 +59,32 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.port", cfg.Server.Port)
 	v.SetDefault("server.name", cfg.Server.Name)
 	v.SetDefault("server.mode", cfg.Server.Mode)
-	v.SetDefault("server.read_timeout", cfg.Server.ReadTimeout)
-	v.SetDefault("server.write_timeout", cfg.Server.WriteTimeout)
-	v.SetDefault("server.idle_timeout", cfg.Server.IdleTimeout)
-	v.SetDefault("server.shutdown_timeout", cfg.Server.ShutdownTimeout)
+	v.SetDefault("server.read-timeout", cfg.Server.ReadTimeout)
+	v.SetDefault("server.write-timeout", cfg.Server.WriteTimeout)
+	v.SetDefault("server.idle-timeout", cfg.Server.IdleTimeout)
+	v.SetDefault("server.shutdown-timeout", cfg.Server.ShutdownTimeout)
 
 	v.SetDefault("database.driver", cfg.Database.Driver)
 	v.SetDefault("database.host", cfg.Database.Host)
 	v.SetDefault("database.port", cfg.Database.Port)
-	v.SetDefault("database.max_idle_conns", cfg.Database.MaxIdleConns)
-	v.SetDefault("database.max_open_conns", cfg.Database.MaxOpenConns)
+	v.SetDefault("database.max-idle-conns", cfg.Database.MaxIdleConns)
+	v.SetDefault("database.max-open-conns", cfg.Database.MaxOpenConns)
 
 	v.SetDefault("log.level", cfg.Log.Level)
-	v.SetDefault("log.max_size", cfg.Log.MaxSize)
-	v.SetDefault("log.max_backups", cfg.Log.MaxBackups)
-	v.SetDefault("log.max_age", cfg.Log.MaxAge)
+	v.SetDefault("log.max-size", cfg.Log.MaxSize)
+	v.SetDefault("log.max-backups", cfg.Log.MaxBackups)
+	v.SetDefault("log.max-age", cfg.Log.MaxAge)
 
 	v.SetDefault("redis.mode", cfg.Redis.Mode)
 	v.SetDefault("redis.db", cfg.Redis.DB)
-	v.SetDefault("redis.pool_size", cfg.Redis.PoolSize)
+	v.SetDefault("redis.pool-size", cfg.Redis.PoolSize)
 
-	v.SetDefault("jwt.access_expire", cfg.JWT.AccessExpire)
-	v.SetDefault("jwt.refresh_expire", cfg.JWT.RefreshExpire)
+	v.SetDefault("jwt.access-secret", cfg.JWT.AccessSecret)
+	v.SetDefault("jwt.access-expire", cfg.JWT.AccessExpire)
+	v.SetDefault("jwt.refresh-secret", cfg.JWT.RefreshSecret)
+	v.SetDefault("jwt.refresh-expire", cfg.JWT.RefreshExpire)
+
+	v.SetDefault("segmentlock.segment-count", cfg.SegmentLock.SegmentCount)
 }
 
 // Load 加载默认路径下的配置文件，默认路径为 ./config/config.yaml

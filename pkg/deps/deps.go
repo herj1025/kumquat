@@ -2,18 +2,20 @@ package deps
 
 import (
 	"github.com/herj1025/kumquat/config"
-	"github.com/herj1025/kumquat/pkg/distlock"
+	"github.com/herj1025/kumquat/pkg/lock/distlock"
+	"github.com/herj1025/kumquat/pkg/lock/segmentlock"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-// Deps 包含应用顶层模块的依赖（DB、Redis、分布式锁）
+// Deps 包含应用顶层模块的依赖（DB、Redis、分布式锁、分段锁）
 type Deps struct {
 	cfg         *config.Config
 	gormDB      *gorm.DB
 	redisClient redis.UniversalClient
 	distLock    distlock.Client
+	segLock     *segmentlock.SegmentLock
 }
 
 // New 初始化所有的依赖关系
@@ -30,11 +32,16 @@ func New(cfg *config.Config) (*Deps, error) {
 
 	lockClient := distlock.NewRedisClient(redisClient)
 
+	segLock := segmentlock.New(
+		segmentlock.WithSegmentCount(cfg.SegmentLock.SegmentCount),
+	)
+
 	return &Deps{
 		cfg:         cfg,
 		gormDB:      gormDB,
 		redisClient: redisClient,
 		distLock:    lockClient,
+		segLock:     segLock,
 	}, nil
 }
 
@@ -68,6 +75,15 @@ func (c *Deps) DistLock() distlock.Client {
 		return nil
 	}
 	return c.distLock
+}
+
+// SegmentLock 返回分段锁，用于单机高并发场景下减少锁竞争。
+// 相同 key 映射到同一 segment，不同 key 大概率分散到不同 segment。
+func (c *Deps) SegmentLock() *segmentlock.SegmentLock {
+	if c == nil {
+		return nil
+	}
+	return c.segLock
 }
 
 // Close 关闭所有资源

@@ -2,10 +2,10 @@ server:
   port: 8080
   name: "kumquat"
   mode: "debug"
-  read_timeout: 10      # 秒
-  write_timeout: 10     # 秒
-  idle_timeout: 120     # 秒（2分钟）
-  shutdown_timeout: 5   # 秒
+  read-timeout: 10      # 秒
+  write-timeout: 10     # 秒
+  idle-timeout: 120     # 秒（2分钟）
+  shutdown-timeout: 5   # 秒
 
 database:
   driver: "postgres"
@@ -15,23 +15,31 @@ database:
   password: ""
   database: ""
   charset: "utf8"
-  max_idle_conns: 10
-  max_open_conns: 100
+  max-idle-conns: 10
+  max-open-conns: 100
 
 redis:
-  mode: "single"           # single 或 cluster
+  mode: "standalone"       # standalone 或 cluster
   addrs:
     - ""
   # username: ""
   password: ""
   db: 0
-  pool_size: 10
+  pool-size: 10
+
+segmentlock:
+  segment-count: 64           # 分段数量，建议 2 的幂（16, 32, 64, 128, 256）
+
+jwt:
+  access-secret: ""
+  access-expire: 30           # minutes
+  refresh-secret: ""
+  refresh-expire: 720         # hours
 
 log:
   level: "info"
   filename: "logs/app.log"
-  max_size: 100 # MB
-  max_backups: 7
-  max_age: 30 # days
+  max-size: 100 # MB
+  max-backups: 7
+  max-age: 30 # days
   compress: true
-

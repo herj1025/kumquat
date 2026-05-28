@@ -13,8 +13,8 @@ import (
 type RedisMode string
 
 const (
-	singleMode  RedisMode = "single"
-	clusterMode RedisMode = "cluster"
+	standaloneMode RedisMode = "standalone"
+	clusterMode    RedisMode = "cluster"
 )
 
 func initRedis(cfg *config.RedisConfig) (redis.UniversalClient, error) {
@@ -22,7 +22,7 @@ func initRedis(cfg *config.RedisConfig) (redis.UniversalClient, error) {
 	if len(addrs) == 0 {
 		return nil, fmt.Errorf("redis addrs is empty")
 	}
-	if cfg.Mode != string(singleMode) {
+	if cfg.Mode != string(standaloneMode) {
 		if len(addrs) == 1 {
 			return nil, fmt.Errorf("Configure multiple Redis node addresses for non-single-node deployments.")
 		}
