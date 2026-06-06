@@ -20,17 +20,31 @@ type Deps struct {
 
 // New 初始化所有的依赖关系
 func New(cfg *config.Config) (*Deps, error) {
-	gormDB, err := initDB(&cfg.Database)
-	if err != nil {
-		return nil, err
+	var (
+		gormDB      *gorm.DB
+		redisClient redis.UniversalClient
+	)
+
+	if cfg.Database != nil {
+		var err error
+		gormDB, err = initDB(cfg.Database)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	redisClient, err := initRedis(&cfg.Redis)
-	if err != nil {
-		return nil, err
+	if cfg.Redis != nil {
+		var err error
+		redisClient, err = initRedis(cfg.Redis)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	lockClient := distlock.NewRedisClient(redisClient)
+	var lockClient distlock.Client
+	if redisClient != nil {
+		lockClient = distlock.NewRedisClient(redisClient)
+	}
 
 	segLock := segmentlock.New(
 		segmentlock.WithSegmentCount(cfg.SegmentLock.SegmentCount),
@@ -69,7 +83,7 @@ func (c *Deps) Redis() redis.UniversalClient {
 	return c.redisClient
 }
 
-// DistLock 返回分布式锁客户端。
+// DistLock 返回分布式锁客户端。当 Redis 未配置时返回 nil。
 func (c *Deps) DistLock() distlock.Client {
 	if c == nil {
 		return nil

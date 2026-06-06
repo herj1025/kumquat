@@ -30,18 +30,6 @@ func defaultConfig() *Config {
 			MaxBackups: 3,
 			MaxAge:     30,
 		},
-		Database: DatabaseConfig{
-			Driver:       "mysql",
-			Host:         "127.0.0.1",
-			Port:         3306,
-			MaxIdleConns: 10,
-			MaxOpenConns: 100,
-		},
-		Redis: RedisConfig{
-			Mode:     "standalone",
-			DB:       0,
-			PoolSize: 100,
-		},
 		JWT: JWTConfig{
 			AccessExpire:  30,
 			RefreshExpire: 720,
@@ -64,20 +52,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.idle-timeout", cfg.Server.IdleTimeout)
 	v.SetDefault("server.shutdown-timeout", cfg.Server.ShutdownTimeout)
 
-	v.SetDefault("database.driver", cfg.Database.Driver)
-	v.SetDefault("database.host", cfg.Database.Host)
-	v.SetDefault("database.port", cfg.Database.Port)
-	v.SetDefault("database.max-idle-conns", cfg.Database.MaxIdleConns)
-	v.SetDefault("database.max-open-conns", cfg.Database.MaxOpenConns)
-
 	v.SetDefault("log.level", cfg.Log.Level)
 	v.SetDefault("log.max-size", cfg.Log.MaxSize)
 	v.SetDefault("log.max-backups", cfg.Log.MaxBackups)
 	v.SetDefault("log.max-age", cfg.Log.MaxAge)
-
-	v.SetDefault("redis.mode", cfg.Redis.Mode)
-	v.SetDefault("redis.db", cfg.Redis.DB)
-	v.SetDefault("redis.pool-size", cfg.Redis.PoolSize)
 
 	v.SetDefault("jwt.access-secret", cfg.JWT.AccessSecret)
 	v.SetDefault("jwt.access-expire", cfg.JWT.AccessExpire)

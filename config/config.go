@@ -3,9 +3,9 @@ package config
 // Config 聚合了所有配置
 type Config struct {
 	Server      ServerConfig      `mapstructure:"server"`
-	Database    DatabaseConfig    `mapstructure:"database"`
+	Database    *DatabaseConfig   `mapstructure:"database"`
 	Log         LogConfig         `mapstructure:"log"`
-	Redis       RedisConfig       `mapstructure:"redis"`
+	Redis       *RedisConfig      `mapstructure:"redis"`
 	JWT         JWTConfig         `mapstructure:"jwt"`
 	SegmentLock SegmentLockConfig `mapstructure:"segmentlock"`
 }
