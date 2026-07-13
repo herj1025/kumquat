@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var logger *zap.Logger
+var logger = zap.NewNop()
 
 func InitLogger(cfg *config.LogConfig) error {
 	logDir := filepath.Dir(cfg.Filename)

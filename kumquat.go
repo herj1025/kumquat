@@ -114,7 +114,7 @@ func NewApp(opts ...AppOption) *App {
 	}
 	root.PersistentFlags().StringP("config", "c", defaultConfig, "config file path (file or directory)")
 	root.PersistentFlags().IntP("port", "p", 0, "server port (overrides config file)")
-	root.PersistentFlags().String("server-mode", "debug", "server mode (debug, release, test)")
+	root.PersistentFlags().String("server-mode", "", "server mode (debug, release, test)")
 
 	a := &App{root: root}
 

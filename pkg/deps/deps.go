@@ -1,6 +1,9 @@
 package deps
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/herj1025/kumquat/config"
 	"github.com/herj1025/kumquat/pkg/lock/distlock"
 	"github.com/herj1025/kumquat/pkg/lock/segmentlock"
@@ -100,22 +103,29 @@ func (c *Deps) SegmentLock() *segmentlock.SegmentLock {
 	return c.segLock
 }
 
-// Close 关闭所有资源
+// Close 关闭所有资源，确保每个资源都被尝试关闭
 func (c *Deps) Close() error {
+	var errs []error
+
 	if c.redisClient != nil {
 		if err := c.redisClient.Close(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
 	if c.gormDB != nil {
 		sqlDB, err := c.gormDB.DB()
 		if err != nil {
-			return err
+			errs = append(errs, err)
+		} else {
+			if err := sqlDB.Close(); err != nil {
+				errs = append(errs, err)
+			}
 		}
-		if err := sqlDB.Close(); err != nil {
-			return err
-		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to close resources: %w", errors.Join(errs...))
 	}
 	return nil
 }

@@ -27,30 +27,53 @@ func GinSuccess[T any](c *gin.Context, data T) {
 	})
 }
 
-// Error 输出错误响应
-// 支持传递 e.Error 接口，或者普通的 error (自动包装为 500)
+// GinError 输出错误响应。
+// 支持传递 e.Error 接口（自动映射 HTTP 状态码），或者普通的 error（默认 500）。
 func GinError(c *gin.Context, err error) {
 	lang := i18n.GinGetLang(c)
 	var (
-		code = 50001
-		msg  = i18n.Translate(lang, i18n.KeyInternalServerError)
+		code       = 50001
+		msg        = i18n.Translate(lang, i18n.KeyInternalServerError)
+		httpStatus = http.StatusInternalServerError
 	)
 
-	// 类型断言检查是否为业务错误
 	var serverE e.Error
 	if errors.As(err, &serverE) {
 		code = serverE.Code()
 		msg = serverE.Msg()
+		httpStatus = httpStatusFromCode(code)
 	}
 
-	c.JSON(http.StatusInternalServerError, Response[any]{
+	c.JSON(httpStatus, Response[any]{
 		Code:    code,
 		Message: msg,
 		Data:    nil,
 	})
 }
 
-// Success 输出成功响应
+// httpStatusFromCode 根据业务错误码范围映射 HTTP 状态码
+func httpStatusFromCode(code int) int {
+	switch {
+	case code == 0:
+		return http.StatusOK
+	case code >= 4000 && code < 4010:
+		return http.StatusBadRequest
+	case code >= 4010 && code < 4020:
+		return http.StatusUnauthorized
+	case code >= 4030 && code < 4040:
+		return http.StatusForbidden
+	case code >= 4040 && code < 4050:
+		return http.StatusNotFound
+	case code >= 4090 && code < 4100:
+		return http.StatusConflict
+	case code >= 4290 && code < 4300:
+		return http.StatusTooManyRequests
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// GinCustomize 输出自定义格式的响应
 func GinCustomize[T any](c *gin.Context, code int, message string, data T) {
 	c.JSON(http.StatusOK, Response[T]{
 		Code:    code,

@@ -82,7 +82,6 @@ type RedisMutex struct {
 	token  string // 锁的唯一标识 (Value)
 
 	cancelFunc context.CancelFunc
-	wg         sync.WaitGroup
 	mu         sync.Mutex // 保护内部状态
 }
 
@@ -227,7 +226,7 @@ func (m *RedisMutex) startWatchdog() {
 }
 
 func (m *RedisMutex) refresh(ctx context.Context) error {
-	return m.client.client.EvalSha(ctx, refreshScript.Hash(), []string{m.name}, m.token, int(m.opts.Expiration/time.Millisecond)).Err()
+	return refreshScript.Run(ctx, m.client.client, []string{m.name}, m.token, int(m.opts.Expiration/time.Millisecond)).Err()
 }
 
 // Unlock 释放锁

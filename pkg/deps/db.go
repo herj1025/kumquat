@@ -32,12 +32,7 @@ func initDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 			cfg.Password,
 			cfg.Database))
 	default:
-		dialector = postgres.Open(fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-			cfg.Host,
-			cfg.Port,
-			cfg.Username,
-			cfg.Password,
-			cfg.Database))
+		return nil, fmt.Errorf("unsupported database driver: %s", cfg.Driver)
 	}
 
 	gormDB, err := gorm.Open(dialector, &gorm.Config{})

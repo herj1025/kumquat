@@ -1,4 +1,4 @@
-﻿package server
+package server
 
 import (
 	"context"
@@ -27,6 +27,16 @@ type Application struct {
 	deps       *deps.Deps
 }
 
+// DefaultMiddlewares 返回框架默认中间件列表，便于二次开发时增删或调整顺序。
+func DefaultMiddlewares() []gin.HandlerFunc {
+	return []gin.HandlerFunc{
+		gin.Recovery(),
+		gin.Logger(),
+		middleware.RequestTrace(),
+		middleware.I18n(),
+	}
+}
+
 // New 创建并初始化应用运行时
 func New(cfg *config.Config) (*Application, error) {
 	if cfg.Server.Mode != "" {
@@ -34,11 +44,7 @@ func New(cfg *config.Config) (*Application, error) {
 	}
 
 	r := gin.New()
-
-	r.Use(gin.Recovery())
-	r.Use(gin.Logger())
-	r.Use(middleware.RequestTrace())
-	r.Use(middleware.I18n())
+	r.Use(DefaultMiddlewares()...)
 
 	deps, err := deps.New(cfg)
 	if err != nil {
