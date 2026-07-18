@@ -3,6 +3,7 @@ package deps
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/herj1025/kumquat/config"
 	"github.com/herj1025/kumquat/pkg/lock/distlock"
@@ -10,6 +11,12 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+)
+
+var (
+	ErrDBNotInitialized       = errors.New("db is not initialized")
+	ErrRedisNotInitialized    = errors.New("redis is not initialized")
+	ErrDistLockNotInitialized = errors.New("redis distlock is not initialized")
 )
 
 // Deps 包含应用顶层模块的依赖（DB、Redis、分布式锁、分段锁）
@@ -28,7 +35,7 @@ func New(cfg *config.Config) (*Deps, error) {
 		redisClient redis.UniversalClient
 	)
 
-	if cfg.Database != nil {
+	if shouldInitDatabase(cfg.Database) {
 		var err error
 		gormDB, err = initDB(cfg.Database)
 		if err != nil {
@@ -36,7 +43,7 @@ func New(cfg *config.Config) (*Deps, error) {
 		}
 	}
 
-	if cfg.Redis != nil {
+	if shouldInitRedis(cfg.Redis) {
 		var err error
 		redisClient, err = initRedis(cfg.Redis)
 		if err != nil {
@@ -62,6 +69,29 @@ func New(cfg *config.Config) (*Deps, error) {
 	}, nil
 }
 
+func shouldInitDatabase(cfg *config.DatabaseConfig) bool {
+	if cfg == nil {
+		return false
+	}
+	return !(cfg.Host == "" &&
+		cfg.Port == 0 &&
+		cfg.Username == "" &&
+		cfg.Password == "" &&
+		cfg.Database == "")
+}
+
+func shouldInitRedis(cfg *config.RedisConfig) bool {
+	if cfg == nil {
+		return false
+	}
+	for _, addr := range cfg.Addrs {
+		if strings.TrimSpace(addr) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // Config 返回应用配置。
 func (c *Deps) Config() *config.Config {
 	if c == nil {
@@ -70,28 +100,28 @@ func (c *Deps) Config() *config.Config {
 	return c.cfg
 }
 
-// DB 返回 GORM 数据库实例
-func (c *Deps) DB() *gorm.DB {
-	if c == nil {
-		return nil
+// DB 返回 GORM 数据库实例；未初始化时返回包装错误。
+func (c *Deps) DB() (*gorm.DB, error) {
+	if c == nil || c.gormDB == nil {
+		return nil, fmt.Errorf("get db: %w", ErrDBNotInitialized)
 	}
-	return c.gormDB
+	return c.gormDB, nil
 }
 
-// Redis 返回 Redis 客户端
-func (c *Deps) Redis() redis.UniversalClient {
-	if c == nil {
-		return nil
+// Redis 返回 Redis 客户端；未初始化时返回包装错误。
+func (c *Deps) Redis() (redis.UniversalClient, error) {
+	if c == nil || c.redisClient == nil {
+		return nil, fmt.Errorf("get redis: %w", ErrRedisNotInitialized)
 	}
-	return c.redisClient
+	return c.redisClient, nil
 }
 
-// DistLock 返回分布式锁客户端。当 Redis 未配置时返回 nil。
-func (c *Deps) DistLock() distlock.Client {
-	if c == nil {
-		return nil
+// DistLock 返回分布式锁客户端；未初始化时返回包装错误。
+func (c *Deps) DistLock() (distlock.Client, error) {
+	if c == nil || c.distLock == nil {
+		return nil, fmt.Errorf("get redis distlock: %w", ErrDistLockNotInitialized)
 	}
-	return c.distLock
+	return c.distLock, nil
 }
 
 // SegmentLock 返回分段锁，用于单机高并发场景下减少锁竞争。

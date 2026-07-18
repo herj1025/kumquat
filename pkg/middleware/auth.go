@@ -3,6 +3,8 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +14,8 @@ import (
 	"github.com/herj1025/kumquat/pkg/i18n"
 	"github.com/herj1025/kumquat/pkg/response"
 )
+
+var bearerTokenPattern = regexp.MustCompile(`(?i)^Bearer\s+`)
 
 // TokenPair contains both access and refresh tokens.
 type TokenPair struct {
@@ -28,7 +32,7 @@ type RevokedTokenStore interface {
 // Authorization returns a middleware that validates JWT access tokens.
 func Authorization(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.GetHeader(constant.AuthorizationKey)
+		token := normalizeAuthorizationToken(c.GetHeader(constant.AuthorizationKey))
 		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.Response[any]{
 				Code:    constant.Unauthorized,
@@ -51,6 +55,17 @@ func Authorization(secret string) gin.HandlerFunc {
 		c.Set("claims", claims)
 		c.Next()
 	}
+}
+
+func normalizeAuthorizationToken(header string) string {
+	header = strings.TrimSpace(header)
+	if header == "" {
+		return ""
+	}
+	if bearerTokenPattern.MatchString(header) {
+		return strings.TrimSpace(bearerTokenPattern.ReplaceAllString(header, ""))
+	}
+	return header
 }
 
 // generateToken creates a signed JWT token with the given claims, secret and expiration.
