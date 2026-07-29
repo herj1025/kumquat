@@ -8,18 +8,14 @@ func RegisterRoutes(app *server.Application) error {
 	if err != nil {
 		return err
 	}
-	redisClient, err := app.Deps().Redis()
-	if err != nil {
-		return err
-	}
 	distLock, err := app.Deps().DistLock()
 	if err != nil {
 		return err
 	}
 
-	repo := NewRepository(db)
-	svc := NewService(repo, redisClient, distLock)
-	handler := NewHandler(svc)
+	svc := NewService(newRepository(db), distLock)
+	// 将 svc 同时作为 demoFinder 和 demoTaskRunner 注入
+	handler := newHandler(svc)
 
 	routes := app.Engine().Group("/demo")
 	routes.GET("", handler.Get)

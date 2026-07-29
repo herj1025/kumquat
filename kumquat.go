@@ -40,7 +40,7 @@ func loadConfigWithPath(path string) (*config.Config, error) {
 type App struct {
 	root      *cobra.Command
 	serverCmd *cobra.Command
-	routes    []func(*server.Application)
+	routes    []func(*server.Application) error
 }
 
 // AppOption 定义创建 App 时的可选配置
@@ -131,8 +131,8 @@ func NewApp(opts ...AppOption) *App {
 }
 
 // RegisterRoutes 注册业务路由。回调函数会收到已初始化的 *server.Application，
-// 通过 srv.Engine() 注册路由，通过 srv.Container() 获取基础设施依赖。
-func (a *App) RegisterRoutes(fn func(*server.Application)) {
+// 通过 srv.Engine() 注册路由，通过 srv.Deps() 获取基础设施依赖。
+func (a *App) RegisterRoutes(fn func(*server.Application) error) {
 	a.routes = append(a.routes, fn)
 }
 
@@ -205,7 +205,9 @@ func (a *App) runServer(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, fn := range a.routes {
-		fn(srv)
+		if err := fn(srv); err != nil {
+			return fmt.Errorf("failed to register routes: %w", err)
+		}
 	}
 
 	// 7. 启动服务器（阻塞）
@@ -263,6 +265,21 @@ func (a *App) AddGenerateCommand() {
 				output = args[1]
 			}
 			return generator.GenerateServiceTemplate(name, output)
+		},
+	})
+
+	generateCmd.AddCommand(&cobra.Command{
+		Use:   "module [name] [output]",
+		Short: "Generate module template",
+		Long:  `Generate a Go-style module template. If output is not specified, uses ./internal/[name]`,
+		Args:  cobra.RangeArgs(1, 2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			name := args[0]
+			output := fmt.Sprintf("./internal/%s", name)
+			if len(args) > 1 {
+				output = args[1]
+			}
+			return generator.GenerateModuleTemplate(name, output)
 		},
 	})
 

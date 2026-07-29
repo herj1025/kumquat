@@ -30,6 +30,30 @@
 - zap
 - lumberjack
 
+## 推荐结构
+
+```text
+cmd/
+  kumquat/
+    main.go        # 应用入口
+    register.go    # 模块聚合注册
+internal/
+  demo/
+    model.go
+    repository.go
+    service.go
+    handler.go
+    routes.go      # 模块内路由与依赖组装
+pkg/
+  deps/            # 基础设施依赖
+  middleware/      # 通用中间件
+  response/        # 通用响应
+```
+
+- 按业务模块组织代码，而不是按 `controller/service/dao` 横向拆目录
+- 模块内使用具体类型，只有在真正需要替换时再抽象接口
+- `cmd` 层负责应用装配，`internal` 只放业务模块
+
 ## 快速开始
 
 ### 1. 使用命令行方式
@@ -38,25 +62,32 @@
 package main
 
 import (
-    "github.com/gin-gonic/gin"
+    "log"
+
     "github.com/herj1025/kumquat"
+    "github.com/herj1025/kumquat/internal/demo"
+    "github.com/herj1025/kumquat/pkg/server"
 )
+
+func registerRoutes(app *server.Application) error {
+    return demo.RegisterRoutes(app)
+}
 
 func main() {
     app := kumquat.NewApp()
-    
-    // 添加生成命令
     app.AddGenerateCommand()
-    
-    app.RegisterRoutes(func(srv *kumquat.Application) {
-        r := srv.Engine()
-        r.GET("/ping", func(c *gin.Context) {
-            c.JSON(200, gin.H{"message": "pong"})
-        })
-    })
-    
-    app.Run()
+    app.RegisterRoutes(registerRoutes)
+
+    if err := app.Run(); err != nil {
+        log.Fatal(err)
+    }
 }
+```
+
+启动服务：
+
+```bash
+go run cmd/kumquat/main.go server
 ```
 
 ### 2. 使用限流器
@@ -65,34 +96,40 @@ func main() {
 package main
 
 import (
+    "log"
+
     "github.com/gin-gonic/gin"
     "github.com/herj1025/kumquat"
     "github.com/herj1025/kumquat/pkg/ratelimit"
+    "github.com/herj1025/kumquat/pkg/server"
     "golang.org/x/time/rate"
 )
 
+func registerRoutes(app *server.Application) error {
+    r := app.Engine()
+    // 按IP限流：每秒最多10个请求，突发容量20
+    ipLimiter := ratelimit.Middleware(
+        ratelimit.NewMemoryLimiter(rate.Limit(10), 20),
+        ratelimit.WithKeyFunc(func(c *gin.Context) string {
+            return c.ClientIP()
+        }),
+    )
+
+    r.GET("/api/limited", ipLimiter, func(c *gin.Context) {
+        c.JSON(200, gin.H{"message": "Limited endpoint"})
+    })
+    r.GET("/api/unlimited", func(c *gin.Context) {
+        c.JSON(200, gin.H{"message": "Unlimited endpoint"})
+    })
+    return nil
+}
+
 func main() {
     app := kumquat.NewApp()
-    
-    app.RegisterRoutes(func(srv *kumquat.Application) {
-        r := srv.Engine()
-        // 按IP限流：每秒最多10个请求，突发容量20
-        ipLimiter := ratelimit.Middleware(
-            ratelimit.NewMemoryLimiter(rate.Limit(10), 20),
-            ratelimit.WithKeyFunc(func(c *gin.Context) string {
-                return c.ClientIP()
-            }),
-        )
-        r.GET("/api/limited", ipLimiter, func(c *gin.Context) {
-            c.JSON(200, gin.H{"message": "Limited endpoint"})
-        })
-        
-        r.GET("/api/unlimited", func(c *gin.Context) {
-            c.JSON(200, gin.H{"message": "Unlimited endpoint"})
-        })
-    })
-    
-    app.Run()
+    app.RegisterRoutes(registerRoutes)
+    if err := app.Run(); err != nil {
+        log.Fatal(err)
+    }
 }
 ```
 
@@ -103,10 +140,12 @@ package main
 
 import (
     "fmt"
+    "log"
 
     "github.com/gin-gonic/gin"
     "github.com/herj1025/kumquat"
     "github.com/herj1025/kumquat/pkg/middleware"
+    "github.com/herj1025/kumquat/pkg/server"
     "github.com/spf13/cobra"
 )
 
@@ -133,17 +172,20 @@ func main() {
         "enable JWT authentication for all routes",
     )
 
-    app.RegisterRoutes(func(srv *kumquat.Application) {
-        r := srv.Engine()
+    app.RegisterRoutes(func(app *server.Application) error {
+        r := app.Engine()
         if authEnabled {
             r.Use(middleware.Authorization("secret-key"))
         }
         r.GET("/ping", func(c *gin.Context) {
             c.JSON(200, gin.H{"message": "pong"})
         })
+        return nil
     })
 
-    app.Run()
+    if err := app.Run(); err != nil {
+        log.Fatal(err)
+    }
 }
 ```
 
@@ -155,16 +197,20 @@ func main() {
 go run cmd/kumquat/main.go gen config [output_path]
 ```
 
-### 生成处理器模板
+### 生成模块模板
 
 ```bash
-go run cmd/kumquat/main.go gen handler [name] [output_path]
+go run cmd/kumquat/main.go gen module [name] [output_dir]
 ```
 
-### 生成服务层模板
+默认会在 `./internal/[name]` 下生成：
 
-```bash
-go run cmd/kumquat/main.go gen service [name] [output_path]
+```text
+model.go
+repository.go
+service.go
+handler.go
+routes.go
 ```
 
 ## 提交格式规范

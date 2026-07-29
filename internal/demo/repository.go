@@ -8,16 +8,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type Repository interface {
-	FindById(context.Context) (*Demo, error)
-}
-
 type repository struct {
 	db *gorm.DB
 }
 
-// NewRepository 创建用户仓库
-func NewRepository(gormDB *gorm.DB) Repository {
+func newRepository(gormDB *gorm.DB) *repository {
 	return &repository{
 		db: gormDB,
 	}

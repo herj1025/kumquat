@@ -7,17 +7,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Handler struct {
-	svc Service
+type handler struct {
+	svc *service
 }
 
-func NewHandler(svc Service) *Handler {
-	return &Handler{
-		svc: svc,
+func newHandler(service *service) *handler {
+	return &handler{
+		svc: service,
 	}
 }
 
-func (h *Handler) Get(c *gin.Context) {
+func (h *handler) Get(c *gin.Context) {
 
 	// 打印日志，观察是否能自动带出 TraceID, UserID, Accept-Language
 	logger.C(c).Info("Processing FindById request")
@@ -32,7 +32,7 @@ func (h *Handler) Get(c *gin.Context) {
 }
 
 // RunTask 处理分布式任务请求
-func (h *Handler) RunTask(c *gin.Context) {
+func (h *handler) RunTask(c *gin.Context) {
 	logger.C(c).Info("Processing RunTask request")
 
 	data, err := h.svc.RunDistributedTask(c)

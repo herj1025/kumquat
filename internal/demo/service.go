@@ -7,28 +7,18 @@ import (
 	"github.com/herj1025/kumquat/pkg/lock/distlock"
 	"github.com/herj1025/kumquat/pkg/logger"
 
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
-// Service 定义业务逻辑接口
-type Service interface {
-	FindById(context.Context) (*Demo, error)
-	RunDistributedTask(context.Context) (int64, error)
-}
-
 type service struct {
-	repo        Repository
-	redisClient redis.UniversalClient
-	lockClient  distlock.Client
+	repo       *repository
+	lockClient distlock.Client
 }
 
-// NewService 创建服务实例
-func NewService(repo Repository, redisClient redis.UniversalClient, lockClient distlock.Client) Service {
+func NewService(resp *repository, lockClient distlock.Client) *service {
 	return &service{
-		repo:        repo,
-		redisClient: redisClient,
-		lockClient:  lockClient,
+		repo:       resp,
+		lockClient: lockClient,
 	}
 }
 
